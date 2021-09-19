@@ -1,5 +1,6 @@
 // fixme: ifdef
 
+#include <algorithm>
 
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
@@ -92,3 +93,9 @@ BidirectionalIterator classify_reorder(BidirectionalIterator first, Bidirectiona
     return found;
 }
 
+
+// fixme: insertion algorithm
+// * first, naive reference implementation
+// * then, use stable_partition algorithm
+
+// fixme: deletion algorithm: no implementation, but highlight it's datastructure responsibility, and no further handling is needed for delete

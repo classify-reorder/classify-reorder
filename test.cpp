@@ -2,8 +2,10 @@
 #include <list>
 #include <vector>
 #include <algorithm>
+#include <cassert>
 
 #include "classify_reorder.hpp"
+#include "utils.hpp"
 
 using namespace std;
 
@@ -87,6 +89,8 @@ int main()
         p.id = 5;
         
         auto matching = classify_reorder<MyRule, MyPacket, MatchPacketPred, IsDependencyPred>(original_list.begin(), original_list.end(), p);
+
+        assert(is_correct_order<IsDependencyPred>(original_list.begin(), original_list.end()));
 
         cout << "Found rule " << (*matching) << endl;
     }
