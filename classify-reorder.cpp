@@ -69,128 +69,89 @@ struct MatchPacketPred
 // Abstracting from the Rule and Packet implementation and relying on
 // the user supplying the rule dependency check comparison.
 
-template<typename Rule, typename Packet, class MatchPred, class DependencyPred, typename List = std::list<Rule> >
-class drlist
+
+// FIXME: concepts: Rule must be swappable
+
+
+// Classify the given packet (return the matching rule) and then reorder the rules to speed up future classification
+template<typename Rule, typename Packet, typename MatchPred, typename DependencyPred, typename BidirectionalIterator >
+BidirectionalIterator classify_reorder(BidirectionalIterator first, BidirectionalIterator last, const Packet& p)
 {
-    List rules;
-public:
-    drlist(const List& _rules) : rules(_rules) {}
+    // Matching the packet is equivalent to a find operation
+    // with a custom predicate.
+    auto curr = std::find_if(first, last, MatchPred(p));
 
-    inline constexpr Rule match_simple(const Packet& p)
+    // For debugging purposes.
+    // Fast implementations should not have this check.
+    if(curr == last)
+        throw std::range_error("Rule not found (dynamic list)");
+
+
+    // Rearrange with MoveRecursivelyForward procedure (see the paper).
+    // Tail recursion implemented as iteration.
+    // We break the iteration into two steps: moving the found node, and
+    // moving successive nodes. This is needed to return the found node.
+
+    // Step1: move the found rule forward until encountering its dependency.
+    // At this point, we store the node to return.
+
+    auto pred = curr; // pred is the predecessor of curr
+    --pred;
+
+    while(curr != first)
     {
-        // Matching the packet is equivalent to a find operation
-        // with a custom predicate.
-        auto curr = std::find_if(rules.begin(), rules.end(), MatchPred(p));
-        Rule found = *curr;
+        // If the nodes are not dependencies,
+        // then swap them and continue the procedure for the predecessor
+        // node "pred", which after swap contains the moving rule "curr".
+        // If the nodes are dependencies, end the Step 1.
 
-        // Rearrange with MoveRecursivelyForward procedure (see the paper).
-        // Tail recursion implemented as iteration.
-        auto pred = curr; // pred is the predecessor of curr
-        --pred;
-
-        while(curr != rules.begin())
+        if(!DependencyPred()(*curr, *pred))
+            std::swap(*curr, *pred);
+        else
         {
-            // If the nodes are not dependencies,
-            // then swap them and continue the procedure for the predecessor
-            // node "pred", which after swap contains the moving rule "curr".
-            // If the nodes are dependencies, end the Step 1.
-
-            if(!DependencyPred()(*curr, *pred))
-                std::swap(*curr, *pred);
-
-            --curr;
-            --pred;
+            break;
         }
-
-       return found;
-    }
-
-
-    inline const Rule& match(const Packet& p)
-    {
-        // Matching the packet is equivalent to a find operation
-        // with a custom predicate.
-        auto curr = std::find_if(rules.begin(), rules.end(), MatchPred(p));
-
-        // For debugging purposes.
-        // Fast implementations should not have this check.
-        if(curr == rules.end())
-            throw std::range_error("Rule not found (dynamic list)");
-
-
-        // Rearrange with MoveRecursivelyForward procedure (see the paper).
-        // Tail recursion implemented as iteration.
-        // We break the iteration into two steps: moving the found node, and
-        // moving successive nodes. This is needed to return the found node.
-
-        // Step1: move the found rule forward until encountering its dependency.
-        // At this point, we store the node to return.
-
-        auto pred = curr; // pred is the predecessor of curr
-        --pred;
-
-        while(curr != rules.begin())
-        {
-            // If the nodes are not dependencies,
-            // then swap them and continue the procedure for the predecessor
-            // node "pred", which after swap contains the moving rule "curr".
-            // If the nodes are dependencies, end the Step 1.
-
-            if(!DependencyPred()(*curr, *pred))
-                std::swap(*curr, *pred);
-            else
-                break;
-
-            --curr;
-            --pred;
-        }
-
-        auto found = curr;
-
-        // Terminate if we reach the beginning of the list.
-        if(curr == rules.begin())
-            return *found;
-
-
-        // Step2: recursively move forward: swap forward until encountering
-        // a dependency, say a node z. At that point start moving forward z.
-        // Repeat until reaching the beginning of the list.
-
-
-        // Decrement once more after Step1
-        // (we broke from the loop without decrementing)
-
 
         --curr;
         --pred;
-
-        while(curr != rules.begin())
-        {
-            // If the nodes are not dependencies,
-            // then swap them and continue the procedure for the predecessor
-            // node "pred", which after swap contains the moving rule "curr".
-            // If the nodes are dependencies, continue the procedure without
-            // the swap: it has the effect that "curr" becomes the "pred"
-            // after both iterators decrement.
-
-            if(!DependencyPred()(*curr, *pred))
-                std::swap(*curr, *pred);
-
-            --curr;
-            --pred;
-        }
-
-        return *found;
     }
 
-    // For debugging purposes
-    void print_current_list() const
+    auto found = curr;
+
+    // Terminate if we reach the beginning of the list.
+    if(curr == first)
+        return found;
+
+
+    // Step2: recursively move forward: swap forward until encountering
+    // a dependency, say a node z. At that point start moving forward z.
+    // Repeat until reaching the beginning of the list.
+
+    // Move one step closer to the head of the list to start moving
+    // the encountered dependency node.
+    // Recall that in Step1, we broke from the loop without decrementing.
+    --curr;
+    --pred;
+
+    while(curr != first)
     {
-        for(auto it = rules.begin(); it != rules.end(); ++it)
-            cout << (*it) << ' ';
-        cout << endl;
+        // If the nodes are not dependencies,
+        // then swap them and continue the procedure for the predecessor
+        // node "pred", which after swap contains the moving rule "curr".
+        // If the nodes are dependencies, continue the procedure without
+        // the swap: it has the effect that "curr" becomes the "pred"
+        // after both iterators decrement.
+
+        if(!DependencyPred()(*curr, *pred))
+            std::swap(*curr, *pred);
+
+        --curr;
+        --pred;
     }
-};
+
+    return found;
+}
+
 
 
 int main()
@@ -204,21 +165,18 @@ int main()
         original_list.push_back(r);
     }
 
-    drlist<MyRule, MyPacket, MatchPacketPred, IsDependencyPred, vector<MyRule> >
-        dynamic_list(original_list);
-
-    dynamic_list.print_current_list();
 
     // Request the packet with id=5 for 5 times in the row.
     for(int i = 0; i < 5; ++i)
     {
+        // FIXME: print the list to see changes
+
         MyPacket p;
         p.id = 5;
         
-        const MyRule& matching = dynamic_list.match_simple(p);
-        cout << "Found rule " << matching << endl;
+        auto matching = classify_reorder<MyRule, MyPacket, MatchPacketPred, IsDependencyPred>(original_list.begin(), original_list.end(), p);
 
-        dynamic_list.print_current_list();
+        cout << "Found rule " << (*matching) << endl;
     }
 
     return 0;
