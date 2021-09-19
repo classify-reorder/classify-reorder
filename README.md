@@ -18,3 +18,22 @@ Code after: classify_reorder with hpp only library no dependencies
 Code with vector and list and deque
 
 Code with various classification criterias
+
+# Insertions
+
+Transitivity: special insertion implementation
+
+What is transitivity?
+
+Without transitivity.
+
+
+# Pros and cons
+
+For plenty of rules, one should look into more sophisticated data structures
+
+For very low locality, may be 2x slower than the static list
+
+Incompatible with parallel processing
+
+Insertion may be quadratic (usually much better though, depends on the structure of dependencies)

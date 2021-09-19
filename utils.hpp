@@ -5,6 +5,8 @@
 // how to manage header-only libraries? how to split them over files?
 
 
+// fixme: should work for functions too, not only struct DependencyPred
+
 template<typename DependencyPred, typename BidirectionalIterator >
 bool is_correct_order(BidirectionalIterator first, BidirectionalIterator last)
 {
