@@ -96,6 +96,10 @@ BidirectionalIterator classify_reorder(BidirectionalIterator first, Bidirectiona
 template<typename Rule, typename DependencyPred, typename BidirectionalIterator >
 BidirectionalIterator cr_insert(BidirectionalIterator first, BidirectionalIterator last, const Rule& r)
 {
+    // find the first position where r has no inversions with the nodes in this prefix
+    // insert r there
+    // find all rules succeeding r that should be placed in front of it
+    //     move them directly in front of r
 }
 
 // fixme: insertion algorithm
