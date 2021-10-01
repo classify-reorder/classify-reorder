@@ -4,6 +4,7 @@
 
 // how to manage header-only libraries? how to split them over files?
 
+// fixme: is_transitive
 
 // fixme: should work for functions too, not only struct DependencyPred
 

@@ -93,6 +93,10 @@ BidirectionalIterator classify_reorder(BidirectionalIterator first, Bidirectiona
     return found;
 }
 
+template<typename Rule, typename DependencyPred, typename BidirectionalIterator >
+BidirectionalIterator cr_insert(BidirectionalIterator first, BidirectionalIterator last, const Rule& r)
+{
+}
 
 // fixme: insertion algorithm
 // * first, naive reference implementation
